@@ -75,4 +75,3 @@ export function fetchAllRssItems(rssUrl) {
   fetchAndProcessRssItems(rssUrl, () => Promise.resolve(true));
 }
 
-fetchNewRssItems('https://feeds.megaphone.fm/newheights')
