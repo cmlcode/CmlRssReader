@@ -40,7 +40,6 @@ function processRssItems(items, rssUrl, shouldSaveItem) {
       shouldSaveItem(pubDate).then(shouldSave => {
         if (shouldSave) {
           saveRssItem(db, title, desc, pubDate, rssUrl).then(() => {
-            console.log(`Saved item: ${title}`);
           }).catch(error => {
             console.error('Error saving RSS item:', error);
           });
@@ -54,7 +53,7 @@ function processRssItems(items, rssUrl, shouldSaveItem) {
   });
 }
 
-function fetchAndProcessRSSItems(rssUrl, shouldSaveItem) {
+function fetchAndProcessRssItems(rssUrl, shouldSaveItem) {
   fetchRssFeed(rssUrl).then(doc => {
     const items = doc.querySelectorAll("item");
     processRssItems(items, rssUrl, shouldSaveItem);
@@ -64,7 +63,7 @@ function fetchAndProcessRSSItems(rssUrl, shouldSaveItem) {
 }
 
 export function fetchNewRssItems(rssUrl) {
-  fetchAndProcessRSSItems(rssUrl, pubDate => {
+  fetchAndProcessRssItems(rssUrl, pubDate => {
     if (pubDate) {
       return isPubDateAfterLastRun(pubDate);
     }
