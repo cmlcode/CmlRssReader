@@ -86,9 +86,21 @@ export function isPubDateAfterLastRun(pubDate) {
 }
 
 export function saveRssItem(db, title, desc, pubDate, rssFeed) {
-  const transaction = db.transaction(['rssObj'], 'readwrite');
-  const store = transaction.objectStore('rssObj');
-  return store.add({title, desc, pubDate, rssFeed });
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(['rssObj'], 'readwrite');
+    const store = transaction.objectStore('rssObj');
+
+    const request = store.add({title, desc, pubDate, rssFeed });
+
+    request.onsuccess = function(event) {
+      resolve(event.target.result);
+    }
+
+    request.onerror = function(event) {
+      console.error("Error saving RSS item: ", event.target.error);
+      reject(event.target.error);
+    }
+  })
 }
 
 export function getAllRssItems(){
