@@ -2,7 +2,7 @@ let db;
 
 export function getDB(){
   return new Promise((resolve, reject) => {
-    const request = window.indexedDB.open('rssDatabase', 3);
+    const request = window.indexedDB.open('rssDatabase', 4);
 
     request.onsuccess = function(event) {
       db = request.result;
@@ -10,7 +10,6 @@ export function getDB(){
     };
 
     request.onerror = function(event) {
-      console.error('Database error: ', request.errorCode);
       reject(event.target.errorCode)
     };
 
@@ -25,10 +24,19 @@ export function getDB(){
         objectStore.createIndex('title', 'title')
         objectStore.createIndex('desc', 'desc')
         objectStore.createIndex('pubDate', 'pubDate');
+        objectStore.createIndex('rssFeed','rssFeed')
       }
 
       if (!db.objectStoreNames.contains('meta')) {
         const metaStore = db.createObjectStore('meta', { keyPath: 'id' });
+      }
+
+      if (!db.objectStoreNames.contains('rssFeeds')) {
+        const feedStore = db.createObjectStore('rssFeeds', {
+          keyPath: 'id',
+          autoIncrement: true
+        })
+        feedStore.createIndex('url', 'url')
       }
     };
   });
@@ -77,14 +85,14 @@ export function isPubDateAfterLastRun(pubDate) {
   })
 }
 
-export function saveRssItem(db, title, desc, pubDate) {
+export function saveRssItem(db, title, desc, pubDate, rssFeed) {
   const transaction = db.transaction(['rssObj'], 'readwrite');
   const store = transaction.objectStore('rssObj');
-  return store.add({title, desc, pubDate});
+  return store.add({title, desc, pubDate, rssFeed });
 }
 
 export function getAllRssItems(){
-  return getDB(). then(db => {
+  return getDB().then(db => {
     return new Promise((resolve, reject) => {
       const transaction = db.transaction(['rssObj'], 'readonly');
       const store = transaction.objectStore('rssObj');
@@ -98,5 +106,29 @@ export function getAllRssItems(){
         reject(event.target.errorCode);
       };
     });
+  })
+}
+
+export function saveRssFeedUrl(db, url) {
+  const transaction = db.transaction(['rssFeeds'], 'readwrite');
+  const store = transaction.objectStore('rssFeeds');
+  return store.add({ url });
+}
+
+export function getAllRssFeedUrls() {
+  return getDB().then(db => {
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(['rssFeeds'], 'readonly');
+      const store = transaction.objectStore('rssFeeds');
+      const request = store.getAll();
+
+      request.onsuccess = function(event) {
+        resolve(request.result);
+      }
+
+      request.onerror = function(event) {
+        reject(event.target.errorCode);
+      }
+    })
   })
 }
