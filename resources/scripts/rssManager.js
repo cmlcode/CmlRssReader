@@ -1,4 +1,4 @@
-import { getAllRssFeedUrls, saveRssFeedUrl, deleteRssFeedUrl, getDb } from "./dbConn.js";
+import { getAllRssFeedUrls, saveRssFeedUrl, deleteRssFeedUrl, getDb} from "./dbConn.js";
 import { fetchNewRssItems, fetchAllRssItems } from "./rssFetcher.js";
 
 export function processAllFeeds(fetchAll = false) {
@@ -29,4 +29,4 @@ export function delRssUrl(rssUrl) {
 
 const RSS_URL = "https://feeds.megaphone.fm/newheights"
 addRssUrl(RSS_URL)
-processAllFeeds();
+processAllFeeds(true);
