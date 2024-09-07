@@ -1,8 +1,8 @@
 let db;
 
-export function getDB(){
+export function getDb(){
   return new Promise((resolve, reject) => {
-    const request = window.indexedDB.open('rssDatabase', 4);
+    const request = window.indexedDB.open('rssDatabase', 8);
 
     request.onsuccess = function(event) {
       db = request.result;
@@ -33,17 +33,15 @@ export function getDB(){
 
       if (!db.objectStoreNames.contains('rssFeeds')) {
         const feedStore = db.createObjectStore('rssFeeds', {
-          keyPath: 'id',
-          autoIncrement: true
-        })
-        feedStore.createIndex('url', 'url')
+          keyPath: 'url',
+        });
       }
     };
   });
 }
 
 export function storeLastRunTime() {
-  getDB().then(db => {
+  getDb().then(db => {
     const transaction = db.transaction(['meta'], 'readwrite');
     const store = transaction.objectStore('meta');
     const lastRunTime = new Date().toISOString();
@@ -55,7 +53,7 @@ export function storeLastRunTime() {
 }
 
 export function getLastRunTime() {
-  return getDB().then(db => {
+  return getDb().then(db => {
     return new Promise((resolve, reject) => {
       const transaction = db.transaction(['meta'], 'readonly');
       const store = transaction.objectStore('meta');
@@ -104,7 +102,7 @@ export function saveRssItem(db, title, desc, pubDate, rssFeed) {
 }
 
 export function getAllRssItems(){
-  return getDB().then(db => {
+  return getDb().then(db => {
     return new Promise((resolve, reject) => {
       const transaction = db.transaction(['rssObj'], 'readonly');
       const store = transaction.objectStore('rssObj');
@@ -127,8 +125,14 @@ export function saveRssFeedUrl(db, url) {
   return store.add({ url });
 }
 
+export function deleteRssFeedUrl(db, url) {
+  const transaction = db.transaction(['rssFeeds'], 'readwrite');
+  const store = transaction.objectStore('rssFeeds');
+  return store.delete(url)
+}
+
 export function getAllRssFeedUrls() {
-  return getDB().then(db => {
+  return getDb().then(db => {
     return new Promise((resolve, reject) => {
       const transaction = db.transaction(['rssFeeds'], 'readonly');
       const store = transaction.objectStore('rssFeeds');

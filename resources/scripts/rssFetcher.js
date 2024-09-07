@@ -1,4 +1,4 @@
-import { getDB, storeLastRunTime, isPubDateAfterLastRun, saveRssItem,
+import { getDb, storeLastRunTime, isPubDateAfterLastRun, saveRssItem,
   getAllRssItems } from "./dbConn.js";
 
 // Fetch and parse RSS Feed
@@ -31,7 +31,7 @@ function fetchRssFeed(rssUrl) {
 
 // Process and Save RSS Items
 function processRssItems(items, rssUrl, shouldSaveItem) {
-  return getDB().then(db => {
+  return getDb().then(db => {
     items.forEach(item => {
       const title = item.querySelector("title")?.textContent || "No title";
       const desc = item.querySelector("description")?.textContent || "No description";
