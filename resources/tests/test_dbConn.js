@@ -1,5 +1,5 @@
-import { getAllRssFeedUrls, saveRssFeedUrl, deleteRssFeedUrl, getDb,
-  saveRssItem, getAllRssItems } from "../scripts/dbConn.js";
+import { getAllRssFeedUrls, saveRssFeedUrl, deleteRssFeedByUrl, getDb,
+  saveRssItem, getAllRssItems, getLastRunTime, getRssFeedLinkedIds} from "../scripts/dbConn.js";
 
 
 var failedTests = 0;
@@ -27,8 +27,8 @@ async function set_test_env(databaseName){
 
 async function test_getAllRssFeedUrls_empty(){
   runTests += 1;
-  const dbObj = await getDb();
-  const rssUrls = await getAllRssFeedUrls(dbObj)
+  const dbObj = await getDb('rssDatabase');
+  const rssUrls = await getAllRssFeedUrls(dbObj);
   if (rssUrls.length != 0){
     failedTests++;
     console.log("FAIL:test_getAllRssFeedUrls_empty");
@@ -37,14 +37,14 @@ async function test_getAllRssFeedUrls_empty(){
 
 async function test_saveRssFeedUrl() {
   runTests += 1;
-  const dbObj = await getDb();
+  const dbObj = await getDb('rssDatabase');
   saveRssFeedUrl(dbObj, TEST_URL_1);
   let rssUrls = await getAllRssFeedUrls(dbObj);
   if (rssUrls.length != 1){
     failedTests++;
     console.log("FAIL:test_saveRssFeedUrl:saveRssFeedUrl");
   }
-  deleteRssFeedUrl(dbObj, TEST_URL_1);
+  deleteRssFeedByUrl(dbObj, TEST_URL_1);
   rssUrls = await getAllRssFeedUrls(dbObj);
   if (rssUrls.length != 0){
     failedTests++;
@@ -52,49 +52,105 @@ async function test_saveRssFeedUrl() {
   }
 }
 
-async function test_saveRssItem() {
+async function test_saveRssItem_noFeed() {
   runTests += 1;
-  const dbObj = await getDb();
+  const dbObj = await getDb('rssDatabase');
   saveRssItem(dbObj, TEST_TITLE, TEST_DESC, TEST_OLD_PUB_DATE, TEST_URL_1);
 
-  let rssUrls = await getAllRssFeedUrls(dbObj);
-  if (rssUrls.length != 1){
+  // rssFeed should not exist
+  const rssUrls = await getAllRssFeedUrls(dbObj);
+  if (rssUrls.length != 0){
     failedTests++;
-    console.log("FAIL:test_saveRssItem:Failed to save rssUrl");
-    return;
+    console.log("FAIL:test_getAllRssFeedUrls_empty");
   }
 
-  const rssItems = await getAllRssItems(dbObj);
+  // Test that rssItem is created
+  let rssItems = await getAllRssItems(dbObj);
   if (rssItems.length != 1){
     failedTests++;
-    console.log("FAIL:test_saveRssItem:Failed to save rssObj");
+    console.log("FAIL:test_saveRssItem_noFeed:Failed to save rssObj");
   }
+  // Test that saved rssItem has all information
   const rssObj = rssItems[0];
   if (rssObj['title'] != TEST_TITLE) {
     failedTests++;
-    console.log("FAIL:test_saveRssItem:Failed to save rssObj title");
+    console.log("FAIL:test_saveRssItem_noFeed:Failed to save rssObj title");
   }
   if (rssObj['desc'] != TEST_DESC) {
     failedTests++;
-    console.log("FAIL:test_saveRssItem:Failed to save rssObj desc");
+    console.log("FAIL:test_saveRssItem_noFeed:Failed to save rssObj desc");
   }
   if (rssObj['pubDate'] != TEST_OLD_PUB_DATE){
     failedTests++;
-    console.log("FAIL:test_saveRssItem:Failed to save rssObj pub date");
-  }
+    console.log("FAIL:test_saveRssItem_noFeed:Failed to save rssObj pub date");
+  } 
   if (rssObj['rssFeed'] != TEST_URL_1){
     failedTests++;
-    console.log("FAIL:test_saveRssItem:Failed to save rssObj url");
+    console.log("FAIL:test_saveRssItem_noFeed:Failed to save rssObj url");
   }
 
-  deleteRssFeedUrl(dbObj, TEST_URL_1);
-  rssUrls = await getAllRssFeedUrls(dbObj);
-  if (rssUrls.length != 0){
+  deleteRssFeedByUrl(dbObj, TEST_URL_1);
+  // Test that rssItem is removed
+  rssItems = await getAllRssItems(dbObj);
+  if (rssItems.length != 0){
     failedTests++;
-    console.log("FAIL:test_saveRssItem:deleteRssFeedUrl");
+    console.log("FAIL:test_saveRssItem_noFeed:Failed to delete rssObj")
   }
-  
+}
 
+async function test_saveRssItem_feed() {
+  runTests += 1;
+  const dbObj = await getDb('rssDatabase');
+  saveRssFeedUrl(dbObj, TEST_URL_1);
+  saveRssItem(dbObj, TEST_TITLE, TEST_DESC, TEST_OLD_PUB_DATE, TEST_URL_1);
+
+  // rssFeed should not exist
+  const rssUrls = await getAllRssFeedUrls(dbObj);
+  if (rssUrls.length != 1){
+    failedTests++;
+    console.log("FAIL:test_saveRssItem_feed: Failed to get rssUrl");
+  }
+
+  // Test that rssItem is created
+  let rssItems = await getAllRssItems(dbObj);
+  if (rssItems.length != 1){
+    failedTests++;
+    console.log("FAIL:test_saveRssItem_feed:Failed to save rssObj");
+  }
+
+  // Test that saved rssItem has all information
+  const rssObj = rssItems[0];
+  if (rssObj['title'] != TEST_TITLE) {
+    failedTests++;
+    console.log("FAIL:test_saveRssItem_feed:Failed to save rssObj title");
+  }
+  if (rssObj['desc'] != TEST_DESC) {
+    failedTests++;
+    console.log("FAIL:test_saveRssItem_feed:Failed to save rssObj desc");
+  }
+  if (rssObj['pubDate'] != TEST_OLD_PUB_DATE){
+    failedTests++;
+    console.log("FAIL:test_saveRssItem_feed:Failed to save rssObj pub date");
+  } 
+  if (rssObj['rssFeed'] != TEST_URL_1){
+    failedTests++;
+    console.log("FAIL:test_saveRssItem_feed:Failed to save rssObj url");
+  }
+  // Test that rssItem was linked to rssUrl
+  const linkedIds = await getRssFeedLinkedIds(dbObj, TEST_URL_1);
+  if (linkedIds.length != 1){
+    failedTests++;
+    console.log("FAIL:test_saveRssItem_feed:Failed to save RssObj to RssFeedLink");
+  }
+
+
+  deleteRssFeedByUrl(dbObj, TEST_URL_1);
+  // Test that rssItem is removed
+  rssItems = await getAllRssItems(dbObj);
+  if (rssItems.length != 0){
+    failedTests++;
+    console.log("FAIL:test_saveRssItem_feed:Failed to delete rssObj")
+  }
 }
 
 async function runTestSuite() {
@@ -102,7 +158,8 @@ async function runTestSuite() {
   await set_test_env(databaseName)
   await test_getAllRssFeedUrls_empty();
   await test_saveRssFeedUrl();
-  await test_saveRssItem();
+  await test_saveRssItem_noFeed();
+  await test_saveRssItem_feed();
   console.log("TESTS RUN: " + runTests);
   console.log("TESTS FAILD: " + failedTests);
   console.log("FAILURE RATE: " + failedTests/runTests*100 + "%");

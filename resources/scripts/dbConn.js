@@ -1,8 +1,8 @@
 let db;
 
-export function getDb(){
+export function getDb(dbName){
   return new Promise((resolve, reject) => {
-    const request = window.indexedDB.open('rssDatabase', 9);
+    const request = window.indexedDB.open(dbName, 9);
 
     request.onsuccess = function(event) {
       db = request.result;
@@ -41,38 +41,32 @@ export function getDb(){
   });
 }
 
-export function storeLastRunTime() {
-  getDb().then(db => {
-    const transaction = db.transaction(['meta'], 'readwrite');
+export function storeLastRunTime(dbObj) {
+  const transaction = dbObj.transaction(['meta'], 'readwrite');
+  const store = transaction.objectStore('meta');
+  const lastRunTime = new Date().toISOString();
+
+  store.put({ id: 'lastRunTime', value: lastRunTime });
+}
+
+export function getLastRunTime(dbObj) {
+  return new Promise((resolve, reject) => {
+    const transaction = dbObj.transaction(['meta'], 'readonly');
     const store = transaction.objectStore('meta');
-    const lastRunTime = new Date().toISOString();
+    const request = store.get('lastRunTime');
 
-    store.put({ id: 'lastRunTime', value: lastRunTime });
-  }).catch(error => {
-    console.error('Error storing last run time: ', error);
+    request.onsuccess = function(event) {
+      resolve(request.result ? new Date(request.result.value) : null);
+    };
+
+    request.onerror = function(event) {
+      reject(event.target.errorCode);
+    };
   });
 }
 
-export function getLastRunTime() {
-  return getDb().then(db => {
-    return new Promise((resolve, reject) => {
-      const transaction = db.transaction(['meta'], 'readonly');
-      const store = transaction.objectStore('meta');
-      const request = store.get('lastRunTime');
-
-      request.onsuccess = function(event) {
-        resolve(request.result ? new Date(request.result.value) : null);
-      };
-
-      request.onerror = function(event) {
-        reject(event.target.errorCode);
-      };
-    });
-  });
-}
-
-export function isPubDateAfterLastRun(pubDate) {
-  return getLastRunTime().then(lastRunTime => {
+export function isPubDateAfterLastRun(dbObj, pubDate) {
+  return getLastRunTime(dbObj).then(lastRunTime => {
     if (!lastRunTime) {
       return true;
     }
@@ -84,42 +78,31 @@ export function isPubDateAfterLastRun(pubDate) {
   })
 }
 
-export function saveRssItem(db, title, desc, pubDate, rssFeed) {
+export function saveRssItem(dbObj, title, desc, pubDate, rssFeed) {
   return new Promise((resolve, reject) => {
-    const objTransaction = db.transaction(['rssObj'], 'readwrite');
-    const objStore = objTransaction.objectStore('rssObj');
-    const objRequest = objStore.add({title, desc, pubDate, rssFeed });
+    const transaction = dbObj.transaction(['rssObj', 'rssFeeds'], 'readwrite');
+    const objStore = transaction.objectStore('rssObj');
+    const feedsStore = transaction.objectStore('rssFeeds');
+    
+    // Add new RSS Item
+    const objRequest = objStore.add({ title, desc, pubDate, rssFeed });
 
     objRequest.onsuccess = function(event) {
-      // When object is created, add to feed obj list
-      const rssObjId = event.target.result;
-      console.log(rssObjId);
-      const feedTransaction = db.transaction(['rssFeeds'], 'readwrite');
-      const feedStore = feedTransaction.objectStore("rssFeeds");
-      const feedRequest = feedStore.get(rssFeed);
+      const newObjId = event.target.result;
+      const feedRequest = feedsStore.get(rssFeed);
 
       feedRequest.onsuccess = function(event) {
-        // If able to get feed item, add obj to feed list
         const feed = event.target.result;
-        if (!feed) {
-          // Create feed if it does not exist
-          feed = { rssFeed: rssFeedLink, rssObjIds: [rssObjId] };
-          feedStore.add(feed).onsuccess = function() {
-            resolve(rssObjId);
+        // If a feed obj exists with url, add the new item to its list
+        if (feed) {
+          if (!feed.rssObjIds) {
+            feed.rssObjIds = [];
           }
-        } else {
-          feed.rssObjIds.push(rssObjId);
-          feedStore.put(feed).onsuccess = function() {
-            resolve(rssObjId);
-          };
+          feed.rssObjIds.push(newObjId);
+          const updateFeedRequest = feedsStore.put(feed);
         }
       };
-
-      feedRequest.onerror = function(event) {
-        // Run error if fail to get feed
-        console.error("Error updating RssFeeds: ", event.target.error);
-        reject(event.target.error);
-      };
+      resolve();
     };
 
     objRequest.onerror = function(event) {
@@ -130,9 +113,9 @@ export function saveRssItem(db, title, desc, pubDate, rssFeed) {
   });
 }
 
-export function getAllRssItems(db){
+export function getAllRssItems(dbObj){
   return new Promise((resolve, reject) => {
-    const transaction = db.transaction(['rssObj'], 'readonly');
+    const transaction = dbObj.transaction(['rssObj'], 'readonly');
     const store = transaction.objectStore('rssObj');
     const request = store.getAll();
 
@@ -146,48 +129,72 @@ export function getAllRssItems(db){
   });
 }
 
-export function saveRssFeedUrl(db, url) {
-  const transaction = db.transaction(['rssFeeds'], 'readwrite');
+export function saveRssFeedUrl(dbObj, url) {
+  const transaction = dbObj.transaction(['rssFeeds'], 'readwrite');
   const store = transaction.objectStore('rssFeeds');
   return store.add({ url, rssObjIds: [] });
 }
 
-export function deleteRssFeedUrl(db, url) {
-  const feedTransaction = db.transaction(['rssFeeds'], 'readwrite');
-  const feedStore = feedTransaction.objectStore('rssFeeds');
-  
+export function deleteRssFeedByUrl(dbObj, url) {
+  const transaction = dbObj.transaction(['rssFeeds', 'rssObj'], 'readwrite');
+  const feedStore = transaction.objectStore('rssFeeds');
+  const rssObjStore = transaction.objectStore("rssObj");
+
   const feedLinksRequest = feedStore.get(url);
-
+  
   feedLinksRequest.onsuccess = function(event) {
-    let feed = event.target.result;
+    const feed = event.target.result;
     if (feed && feed.rssObjIds) {
-      let rssObjTransaction = db.transaction(['rssObj'], "readwrite");
-      let rssObjStore = rssObjTransaction.objectStore("rssObj");
-
-      feed.rssObjIds.forEach(id => {
-        rssObjStore.delete(id);
+      feed.rssObjIds.forEach(feedObjId => {
+        rssObjStore.delete(feedObjId);
       });
-    }
-  }
+      feedStore.delete(url)
+    } else {
+      const index = rssObjStore.index('rssFeed');
+      const rssFeedRequest = index.openCursor(IDBKeyRange.only(url));
 
-  return feedStore.delete(url)
+      rssFeedRequest.onsuccess = function(event) {
+        let cursor = event.target.result;
+        if (cursor) {
+          rssObjStore.delete(cursor.primaryKey);
+          cursor.continue();
+        }
+      };
+    }
+  };
 }
 
+export function getAllRssFeedUrls(dbObj) {
+  return new Promise((resolve, reject) => {
+    const transaction = dbObj.transaction(['rssFeeds'], 'readonly');
+    const store = transaction.objectStore('rssFeeds');
+    const request = store.getAll();
 
-export function getAllRssFeedUrls() {
-  return getDb().then(db => {
-    return new Promise((resolve, reject) => {
-      const transaction = db.transaction(['rssFeeds'], 'readonly');
-      const store = transaction.objectStore('rssFeeds');
-      const request = store.getAll();
+    request.onsuccess = function(event) {
+      resolve(request.result);
+    };
 
-      request.onsuccess = function(event) {
-        resolve(request.result);
+    request.onerror = function(event) {
+      reject(event.target.errorCode);
+    };
+  });
+}
+
+export function getRssFeedLinkedIds(dbObj, rssUrl) {
+  return new Promise((resolve, reject) => {
+    const transaction = dbObj.transaction(['rssFeeds'], 'readwrite');
+    const feedStore = transaction.objectStore('rssFeeds');
+
+    const feedLinksRequest = feedStore.get(rssUrl);
+    
+    feedLinksRequest.onsuccess = function(event) {
+      const feed = event.target.result;
+      if (feed && feed.rssObjIds) {
+        resolve(feed.rssObjIds);
       }
-
-      request.onerror = function(event) {
-        reject(event.target.errorCode);
+      else {
+        resolve([]);
       }
-    })
-  })
+    };
+  });
 }
