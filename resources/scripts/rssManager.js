@@ -16,13 +16,13 @@ export function processAllFeeds(fetchAll = false) {
 }
 
 export function addRssUrl(rssUrl) {
-  getDb().then(function(dbObj) {
+  getDb('rssDatabase').then(function(dbObj) {
     saveRssFeedUrl(dbObj, rssUrl);
   });
 }
 
 export function delRssUrl(rssUrl) {
-  getDb().then(function(dbObj) {
+  getDb('rssDatabase').then(function(dbObj) {
     deleteRssFeedUrl(dbObj, rssUrl);
   });
 }

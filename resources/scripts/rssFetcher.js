@@ -31,7 +31,7 @@ function fetchRssFeed(rssUrl) {
 
 // Process and Save RSS Items
 function processRssItems(items, rssUrl, shouldSaveItem) {
-  return getDb().then(db => {
+  return getDb('rssDatabase').then(db => {
     items.forEach(item => {
       const title = item.querySelector("title")?.textContent || "No title";
       const desc = item.querySelector("description")?.textContent || "No description";
