@@ -1,5 +1,6 @@
 import { getAllRssFeedUrls, saveRssFeedUrl, deleteRssFeedByUrl, getDb,
-  saveRssItem, getAllRssItems, getLastRunTime, getRssFeedLinkedIds} from "../scripts/dbConn.js";
+  saveRssItem, getAllRssItems, getLastRunTime, getRssFeedLinkedIds,
+  getRssFeedName} from "../scripts/dbConn.js";
 
 
 var failedTests = 0;
@@ -7,6 +8,7 @@ var runTests = 0;
 
 const TEST_DATABASE = 'test_rssDatabase'
 const TEST_URL_1 = "https://feeds.megaphone.fm/newheights";
+const TEST_URL_NAME_1 = "TestFeed1"
 const TEST_TITLE = "TEST_RSS_TILE";
 const TEST_DESC = "TEST_RSS_DESC";
 const TEST_OLD_PUB_DATE = "Wed, 19 Jul 2023 09:50:00 -0000";
@@ -39,12 +41,24 @@ async function test_getAllRssFeedUrls_empty(){
 async function test_saveRssFeedUrl() {
   runTests += 1;
   const dbObj = await getDb(TEST_DATABASE);
-  saveRssFeedUrl(dbObj, TEST_URL_1);
+  saveRssFeedUrl(dbObj, TEST_URL_1, TEST_URL_NAME_1);
   let rssUrls = await getAllRssFeedUrls(dbObj);
   if (rssUrls.length != 1){
     failedTests++;
     console.log("FAIL:test_saveRssFeedUrl:saveRssFeedUrl");
   }
+  const rssLinkedIds = await getRssFeedLinkedIds(dbObj, TEST_URL_1);
+  if (rssLinkedIds.length != 0){
+    failedTests++;
+    console.log("FAIL: test_saveRssFeedUrl:getRssLinkedIds");
+  }
+
+  const rssName = await getRssFeedName(dbObj, TEST_URL_1);
+  if (rssName != TEST_URL_NAME_1){
+    failedTests++;
+    console.log("FAIL: test_saveRssFeedUrl:getRssName");
+  }
+
   deleteRssFeedByUrl(dbObj, TEST_URL_1);
   rssUrls = await getAllRssFeedUrls(dbObj);
   if (rssUrls.length != 0){

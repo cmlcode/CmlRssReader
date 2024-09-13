@@ -2,7 +2,7 @@ let db;
 
 export function getDb(dbName){
   return new Promise((resolve, reject) => {
-    const request = window.indexedDB.open(dbName, 9);
+    const request = window.indexedDB.open(dbName, 10);
 
     request.onsuccess = function(event) {
       db = request.result;
@@ -36,6 +36,7 @@ export function getDb(dbName){
           keyPath: 'url',
         });
         feedStore.createIndex('rssObjIds','rssObjIds');
+        feedStore.createIndex('rssFeedName', 'rssFeedName');
       }
     };
   });
@@ -129,10 +130,10 @@ export function getAllRssItems(dbObj){
   });
 }
 
-export function saveRssFeedUrl(dbObj, url) {
+export function saveRssFeedUrl(dbObj, url, feedName) {
   const transaction = dbObj.transaction(['rssFeeds'], 'readwrite');
   const store = transaction.objectStore('rssFeeds');
-  return store.add({ url, rssObjIds: [] });
+  return store.add({ url, rssObjIds: [] , rssFeedName: feedName});
 }
 
 export function deleteRssFeedByUrl(dbObj, url) {
@@ -182,7 +183,7 @@ export function getAllRssFeedUrls(dbObj) {
 
 export function getRssFeedLinkedIds(dbObj, rssUrl) {
   return new Promise((resolve, reject) => {
-    const transaction = dbObj.transaction(['rssFeeds'], 'readwrite');
+    const transaction = dbObj.transaction(['rssFeeds'], 'readonly');
     const feedStore = transaction.objectStore('rssFeeds');
 
     const feedLinksRequest = feedStore.get(rssUrl);
@@ -194,6 +195,24 @@ export function getRssFeedLinkedIds(dbObj, rssUrl) {
       }
       else {
         resolve([]);
+      }
+    };
+  });
+}
+
+export function getRssFeedName(dbObj, rssUrl){
+  return new Promise((resolve, reject) => {
+    const transaction = dbObj.transaction(['rssFeeds'], 'readonly');
+    const feedStore = transaction.objectStore('rssFeeds');
+    const feedLinksRequest = feedStore.get(rssUrl);
+    
+    feedLinksRequest.onsuccess = function(event) {
+      const feed = event.target.result;
+      if (feed && feed.rssFeedName) {
+        resolve(feed.rssFeedName);
+      }
+      else {
+        resolve("");
       }
     };
   });

@@ -31,7 +31,7 @@ function fetchRssFeed(rssUrl) {
 
 // Process and Save RSS Items
 function processRssItems(items, rssUrl, shouldSaveItem) {
-  return getDb('rssDatabase').then(db => {
+  return getDb('rssDatabase').then(dbObj => {
     items.forEach(item => {
       const title = item.querySelector("title")?.textContent || "No title";
       const desc = item.querySelector("description")?.textContent || "No description";
@@ -39,15 +39,14 @@ function processRssItems(items, rssUrl, shouldSaveItem) {
       
       shouldSaveItem(pubDate).then(shouldSave => {
         if (shouldSave) {
-          saveRssItem(db, title, desc, pubDate, rssUrl).then(() => {
+          saveRssItem(dbObj, title, desc, pubDate, rssUrl).then(() => {
           }).catch(error => {
             console.error('Error saving RSS item:', error);
           });
         }
       });
     });
-
-    storeLastRunTime();
+    storeLastRunTime(dbObj);
   }).catch(error => {
     console.error("Error opening the database", error);
   });

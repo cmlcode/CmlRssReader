@@ -1,16 +1,18 @@
-import { getAllRssFeedUrls, saveRssFeedUrl, deleteRssFeedUrl, getDb} from "./dbConn.js";
+import { getAllRssFeedUrls, saveRssFeedUrl, deleteRssFeedByUrl, getDb} from "./dbConn.js";
 import { fetchNewRssItems, fetchAllRssItems } from "./rssFetcher.js";
 
 export function processAllFeeds(fetchAll = false) {
-  getAllRssFeedUrls().then(function(rssUrls) {
-    rssUrls.forEach((rssUrl) => { 
-      rssUrl = rssUrl.url
-      if(fetchAll){
-        fetchAllRssItems(rssUrl);
-      }
-      else{
-        fetchNewRssItems(rssUrl);
-      }
+  getDb('rssDatabase').then(function(dbObj) {
+    getAllRssFeedUrls(dbObj).then(function(rssUrls) {
+      rssUrls.forEach((rssUrl) => { 
+        rssUrl = rssUrl.url
+        if(fetchAll){
+          fetchAllRssItems(rssUrl);
+        }
+        else{
+          fetchNewRssItems(rssUrl);
+        }
+      });
     });
   });
 }
@@ -26,7 +28,3 @@ export function delRssUrl(rssUrl) {
     deleteRssFeedUrl(dbObj, rssUrl);
   });
 }
-
-const RSS_URL = "https://feeds.megaphone.fm/newheights"
-addRssUrl(RSS_URL)
-processAllFeeds(true);
