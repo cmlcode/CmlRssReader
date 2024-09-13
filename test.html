@@ -1,3 +1,43 @@
 <html>
-  <script src="./resources/tests/test_dbConn.js" type="module"></script>
+  <head>
+    <script type="module">
+      import { runTestSuite_dbConn } from './resources/tests/test_dbConn.js';
+      import { runTestSuite_rssFetcher} from './resources/tests/test_rssFetcher.js';
+      import { runTestSuite_rssManager} from './resources/tests/test_rssManager.js';
+
+      window.runTestSuite_dbConn = runTestSuite_dbConn;
+      window.runTestSuite_rssFetcher = runTestSuite_rssFetcher;
+      window.runTestSuite_rssManager = runTestSuite_rssManager;
+    </script>
+  </head>
+  <body>
+    <div>
+      <div id="dbConnWrapper">
+        <h1> dbConn.js status </h1>
+        <div id="dbConnStatuses">
+          <p id="testsRan_dbConn"> Tests Ran = </p>
+          <p id="testsFailed_dbConn"> Tests Failed = </p>
+          <p id="testFailedPercent_dbConn"> Tests Failed Percent = </p>
+        </div>
+        <button onclick="runTestSuite_dbConn()"> Run dbConn tests</button>
+      </div>
+      <div id="rssFetcherWrapper">
+        <h1> rssFetcher.js status </h1>
+        <div id="rssFetcherStatuses">
+          <p id="testsRan_rssFetcher"> Tests Ran = </p>
+          <p id="testsFailed_rssFetcher"> Tests Failed = </p>
+          <p id="testFailedPercent_rssFetcher"> Tests Failed Percent = </p>
+        </div>
+        <button onclick="runTestSuite_rssFetcher()"> Run dbConn tests</button>
+      </div>
+      <div id="rssManagerWrapper">
+        <div id="rssManagerStatuses">
+          <p id="testsRan_rssManager"> Tests Ran = </p>
+          <p id="testsFailed_rssManager"> Tests Failed = </p>
+          <p id="testFailedPercent_rssManager"> Tests Failed Percent = </p>
+        </div>
+        <button onclick="runTestSuite_rssManager()"> Run dbConn tests</button>
+      </div>
+    </div>
+  </body>
 </html>

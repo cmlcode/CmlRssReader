@@ -20,7 +20,7 @@ async function set_test_env(databaseName){
       reject("Failed to delete database");
     };
     request.onblocked = function() {
-      rejet("Operation blocked, failed to delete database");
+      reject("Operation blocked, failed to delete database");
     };
   });
 }
@@ -153,16 +153,17 @@ async function test_saveRssItem_feed() {
   }
 }
 
-async function runTestSuite() {
+export async function runTestSuite_dbConn() {
   const databaseName = 'rssDatabase';
   await set_test_env(databaseName)
   await test_getAllRssFeedUrls_empty();
   await test_saveRssFeedUrl();
   await test_saveRssItem_noFeed();
   await test_saveRssItem_feed();
-  console.log("TESTS RUN: " + runTests);
-  console.log("TESTS FAILD: " + failedTests);
-  console.log("FAILURE RATE: " + failedTests/runTests*100 + "%");
-}
 
-runTestSuite();
+  const failureRate = failedTests/runTests*100
+
+  document.getElementById('testsRan_dbConn').innerText = `Tests Ran = ${runTests}`;
+  document.getElementById('testsFailed_dbConn').innerText = `Tests Failed = ${failedTests}`;
+  document.getElementById('testFailedPercent_dbConn').innerText = `Tests Failed Percent = ${failureRate.toFixed(2)}%`;
+}
