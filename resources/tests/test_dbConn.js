@@ -5,14 +5,15 @@ import { getAllRssFeedUrls, saveRssFeedUrl, deleteRssFeedByUrl, getDb,
 var failedTests = 0;
 var runTests = 0;
 
+const TEST_DATABASE = 'test_rssDatabase'
 const TEST_URL_1 = "https://feeds.megaphone.fm/newheights";
 const TEST_TITLE = "TEST_RSS_TILE";
 const TEST_DESC = "TEST_RSS_DESC";
 const TEST_OLD_PUB_DATE = "Wed, 19 Jul 2023 09:50:00 -0000";
 
-async function set_test_env(databaseName){
+async function set_test_env(){
   return new Promise((resolve, reject) => {
-    let request = indexedDB.deleteDatabase(databaseName);
+    let request = indexedDB.deleteDatabase(TEST_DATABASE);
     request.onsuccess = function() {
       resolve();
     };
@@ -27,7 +28,7 @@ async function set_test_env(databaseName){
 
 async function test_getAllRssFeedUrls_empty(){
   runTests += 1;
-  const dbObj = await getDb('rssDatabase');
+  const dbObj = await getDb(TEST_DATABASE);
   const rssUrls = await getAllRssFeedUrls(dbObj);
   if (rssUrls.length != 0){
     failedTests++;
@@ -37,7 +38,7 @@ async function test_getAllRssFeedUrls_empty(){
 
 async function test_saveRssFeedUrl() {
   runTests += 1;
-  const dbObj = await getDb('rssDatabase');
+  const dbObj = await getDb(TEST_DATABASE);
   saveRssFeedUrl(dbObj, TEST_URL_1);
   let rssUrls = await getAllRssFeedUrls(dbObj);
   if (rssUrls.length != 1){
@@ -54,7 +55,7 @@ async function test_saveRssFeedUrl() {
 
 async function test_saveRssItem_noFeed() {
   runTests += 1;
-  const dbObj = await getDb('rssDatabase');
+  const dbObj = await getDb(TEST_DATABASE);
   saveRssItem(dbObj, TEST_TITLE, TEST_DESC, TEST_OLD_PUB_DATE, TEST_URL_1);
 
   // rssFeed should not exist
@@ -100,7 +101,7 @@ async function test_saveRssItem_noFeed() {
 
 async function test_saveRssItem_feed() {
   runTests += 1;
-  const dbObj = await getDb('rssDatabase');
+  const dbObj = await getDb(TEST_DATABASE);
   saveRssFeedUrl(dbObj, TEST_URL_1);
   saveRssItem(dbObj, TEST_TITLE, TEST_DESC, TEST_OLD_PUB_DATE, TEST_URL_1);
 
@@ -154,8 +155,7 @@ async function test_saveRssItem_feed() {
 }
 
 export async function runTestSuite_dbConn() {
-  const databaseName = 'rssDatabase';
-  await set_test_env(databaseName)
+  await set_test_env();
   await test_getAllRssFeedUrls_empty();
   await test_saveRssFeedUrl();
   await test_saveRssItem_noFeed();
